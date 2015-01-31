@@ -1,16 +1,27 @@
+// **INCOMING COMMUNICATION**
+// All messages must start with '255', if not, they are discarded and the next byte is read, until a '255' is found
+// the first byte after '255' is the Mode byte
+// after the Mode byte comes the DataLength byte which states how many bytes the rest of the message is. So the total message = DataLength + 3 NOT USED AT THE MOMENT - all messages are 10 Bytes
+// **OUTGOING COMMUNCIATION**
+// Feedback from Arduino: integer, prepended by ']' (ascii character 48)is the number of integers in the buffer. 
+// Every iteration of the main loop sends out how many byter are in the buffer
+// when the buffer is empty ( "]0") this means the arduino is ready to receive a new command
+// Any other comments from the Arduino should be prepended with "[" and will show up as text in Max
+
+
 
 #include <Adafruit_NeoPixel.h>
 #define PIN 12
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, PIN, NEO_GRB + NEO_KHZ800);
 
 int inByte = 0; //inByte is constantly read and evaluated for value '255' If its not 255, it is discarded and the next byte is read
-int Mode = 0; //Mode is the first byte read after any '255' and determines what happens next. It 
-int ModeBytes = 0; //The amount of Bytes this mode uses. this is the amount ADFTER '255' and 'Mode'
+int Mode = 0; //Mode is the first byte read after any '255' and determines what happens next.
+int DataLength = 0; //The amount of Bytes this mode uses. this is the amount AFTER '255' and 'Mode' and 'ModeBytes' 
 int BytesInBuffer = 0;
 int colorByte = 0;
 int Instruction[100] = {
   0,0,0,0,0,0,0,0,0,0};
-int Diagnostic = 0 ; //SWITCH when Diagnostic = 1 more diagnostic info is sent back. Making it 0 switches it off
+int Diagnostic = 1 ; //SWITCH when Diagnostic = 1 more diagnostic info is sent back. Making it 0 switches it off
 
 
 void setup() {
@@ -23,20 +34,17 @@ void setup() {
 
 void loop() 
 { // main section
-  Serial.print("bytes Avail: ");
-  Serial.println(Serial.available());
   Serial.print("]");
   Serial.println(Serial.available());
 
-  if (Serial.available() > 9) 
+  if (Serial.available() > 9) // for now, all commands are 10 bytes. Here we wait to make sure all 10 are in
   {
-    // only start caring once 10 bytes have arrived. Then, check that the first is '255' if not, discard
+    // only start caring once 3 bytes have arrived ('start', 'mode' and 'DataLength'. Then, check that the first is '255' if not, discard
     inByte=Serial.read();
-    Serial.println(inByte);
     if (inByte==255) 
     {// First, determine which mode, and how many Bytes this mode requires
       Mode=Serial.read();
-      ModeBytes=Serial.read();
+      DataLength=Serial.read();
       //Read in full array IF there are Bytes in the buffer
       for (int i = 0; i <=10; i++)
       {
@@ -55,8 +63,8 @@ void loop()
 
       ///array printer
       if (Diagnostic) {
-        Serial.print("Read array at end of reading cycle: ");      
-        for (int i = 0; i <=(ModeBytes-1); i++)
+        Serial.print(" [ Read array at end of reading cycle: ");      
+        for (int i = 0; i <=(DataLength-1); i++)
         {
           Serial.print(i);
           Serial.print(":");
@@ -88,6 +96,7 @@ void loop()
 
   case 0: //All Off
     {
+      Serial.println("[ Mode: All Off");
       for(int i=0; i<strip.numPixels(); i++) {
         strip.setPixelColor(i, 0); // Erase pixel, but don't refresh!
       }
@@ -98,6 +107,7 @@ void loop()
 
   case 1: //Single LED
     {
+      Serial.println("[ Mode: Pixels");
       int pix = Instruction[0] ;
       int r = Instruction[1];
       int g = Instruction[2];
@@ -109,6 +119,7 @@ void loop()
     }
   case 2: //All LED
     {
+      Serial.println("[ Mode: All LEDs");
       int r = Instruction[1];
       int g = Instruction[2];
       int b = Instruction[3];
@@ -120,6 +131,7 @@ void loop()
     }
   case 3: //color chase
     {
+      Serial.println("[ Mode: Chase");
       int r = Instruction[1];
       int g = Instruction[2];
       int b = Instruction[3];
@@ -129,6 +141,7 @@ void loop()
     }
   case 4: //color wipe
     {
+      Serial.println("[ Mode: Wipe");
       int r = Instruction[1];
       int g = Instruction[2];
       int b = Instruction[3];
