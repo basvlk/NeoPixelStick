@@ -107,7 +107,11 @@ void loop()
 
   case 1: //Single LED
     {
-      Serial.println("[ Mode: Pixels");
+      if (Diagnostic)
+        { //Diag start
+         Serial.println("[ Mode: Pixels");
+        } //Diag end
+      
       int pix = Instruction[0] ;
       int r = Instruction[1];
       int g = Instruction[2];
@@ -119,7 +123,11 @@ void loop()
     }
   case 2: //All LED
     {
-      Serial.println("[ Mode: All LEDs");
+      if (Diagnostic)
+        { //Diag start
+         Serial.println("[ Mode: All LEDs");
+        } //Diag end
+      
       int r = Instruction[1];
       int g = Instruction[2];
       int b = Instruction[3];
@@ -131,7 +139,11 @@ void loop()
     }
   case 3: //color chase
     {
-      Serial.println("[ Mode: Chase");
+      if (Diagnostic)
+        { //Diag start
+         Serial.println("[ Mode: Chase");
+        } //Diag end
+      
       int r = Instruction[1];
       int g = Instruction[2];
       int b = Instruction[3];
@@ -141,7 +153,11 @@ void loop()
     }
   case 4: //color wipe
     {
-      Serial.println("[ Mode: Wipe");
+      if (Diagnostic)
+        { //Diag start
+         Serial.println("[ Mode: Wipe");
+        } //Diag end
+      
       int r = Instruction[1];
       int g = Instruction[2];
       int b = Instruction[3];
