@@ -8,12 +8,23 @@
 // when the buffer is empty ( "]0") this means the arduino is ready to receive a new command
 // Any other comments from the Arduino should be prepended with "[" and will show up as text in Max
 
+/**
+Change structure
+-as soon as a character is received, go into a reading loop. 
+- if the first charactar is 255, keep reading, if not, discard
+- wait until the next two charactars arrive (Mode & Datalength) - timeout and discard if it doesn't arrive within x ms
+- then wait until the datalength arrives, timeout and discard if it doesn't arrive within x ms
+
+
+**/
 
 
 #include <Adafruit_NeoPixel.h>
 #define PIN 12
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, PIN, NEO_GRB + NEO_KHZ800);
+const  int nLEDs = 8; // Number of RGB LEDs:
 
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(nLEDs, PIN, NEO_GRB + NEO_KHZ800);
+//**Commmunication structure
 int inByte = 0; //inByte is constantly read and evaluated for value '255' If its not 255, it is discarded and the next byte is read
 int Mode = 0; //Mode is the first byte read after any '255' and determines what happens next.
 int DataLength = 0; //The amount of Bytes this mode uses. this is the amount AFTER '255' and 'Mode' and 'ModeBytes' 
@@ -21,8 +32,11 @@ int BytesInBuffer = 0;
 int colorByte = 0;
 int Instruction[100] = {
   0,0,0,0,0,0,0,0,0,0};
-int Diagnostic = 0 ; //SWITCH when Diagnostic = 1 more diagnostic info is sent back. Making it 0 switches it off
 
+//Control and feedback on the Arduino's operation
+unsigned long previousMillis = 0;        // will store last time the main loop ran
+int LoopIteration = 0;
+int Diagnostic = 1 ; //SWITCH when Diagnostic = 1 more diagnostic info is sent back. Making it 0 switches it off
 
 void setup() {
   // initialize serial communication:
@@ -30,12 +44,28 @@ void setup() {
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
   Serial.println("Hello.");
+  int LoopIteration = 0;
 }
 
 void loop() 
 { // main section
+  ++LoopIteration;
+  unsigned long currentMillis = millis();
+  
+  Serial.print("[ CurrentMillis: ");
+  Serial.println(currentMillis);
+  
+  Serial.print("[ Loop#: ");
+  Serial.println(LoopIteration);
+  Serial.print("[ Looptime: ");
+  Serial.println(currentMillis - previousMillis);
+  previousMillis = currentMillis;
+  
   Serial.print("]");
   Serial.println(Serial.available());
+
+
+
 
   if (Serial.available() > 9) // for now, all commands are 10 bytes. Here we wait to make sure all 10 are in
   {
@@ -46,7 +76,7 @@ void loop()
       Mode=Serial.read();
       DataLength=Serial.read();
       //Read in full array IF there are Bytes in the buffer
-      for (int i = 0; i <=10; i++)
+      for (int i = 0; i <=(DataLength-1); i++)
       {
         Instruction[i]=Serial.read();
         BytesInBuffer = Serial.available();
@@ -64,7 +94,7 @@ void loop()
       ///array printer
       if (Diagnostic) {
         Serial.print(" [ Read array at end of reading cycle: ");      
-        for (int i = 0; i <=(DataLength-1); i++)
+        for (int i = 0; i <=10; i++)
         {
           Serial.print(i);
           Serial.print(":");
@@ -208,7 +238,7 @@ void colorChase(uint32_t c, uint8_t wait) {
     strip.setPixelColor(i, 0); // Erase pixel, but don't refresh!
     delay(wait);
   }
-
+  delay(500);
   strip.show(); // Refresh to turn off last pixel
 }
 
